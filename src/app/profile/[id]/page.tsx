@@ -1,10 +1,12 @@
 import React from "react";
-export default async function UserProfile({
-  params,
-}: {
-  params: Promise<{ id: string }>;
-}) {
-  const { id } = await params;
+interface UserProfileProps {
+  params: {
+    id: string;
+  };
+}
+
+export default function UserProfile({ params }: UserProfileProps) {
+  const { id } = params;
 
   return <h1>User ID: {id}</h1>;
 }

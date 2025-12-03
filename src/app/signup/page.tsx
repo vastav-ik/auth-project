@@ -25,7 +25,10 @@ export default function SignupPage() {
       toast.success("Signup successful");
       router.push("/login");
     } catch (error: any) {
-      toast.error("Something went wrong with signup");
+      const errorMessage =
+        error.response?.data?.message || "Something went wrong with signup";
+      toast.error(errorMessage);
+      console.log("Signup error", error);
       console.log("Signup error", error);
     } finally {
       setLoading(false);
