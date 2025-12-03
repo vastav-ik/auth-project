@@ -9,7 +9,7 @@ export async function POST(request: NextRequest) {
   try {
     const { email, password } = await request.json();
 
-    const user = await User.findOne({ email });
+    const user = await User.findOne({ email }).select("+password");
     if (!user) {
       return NextResponse.json(
         { message: "Invalid credentials" },
@@ -22,6 +22,13 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         { message: "Invalid credentials" },
         { status: 401 }
+      );
+    }
+    const tokenSecret = process.env.TOKEN_SECRET;
+    if (!tokenSecret) {
+      return NextResponse.json(
+        { error: "Server configuration error: TOKEN_SECRET is not set." },
+        { status: 500 }
       );
     }
 
