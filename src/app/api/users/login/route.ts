@@ -13,7 +13,7 @@ export async function POST(request: NextRequest) {
     if (!user) {
       return NextResponse.json(
         { message: "Invalid credentials" },
-        { status: 404 }
+        { status: 401 }
       );
     }
 
@@ -21,7 +21,7 @@ export async function POST(request: NextRequest) {
     if (!validPassword) {
       return NextResponse.json(
         { message: "Invalid credentials" },
-        { status: 404 }
+        { status: 401 }
       );
     }
 
@@ -43,7 +43,6 @@ export async function POST(request: NextRequest) {
     response.cookies.set("token", token, {
       httpOnly: true,
     });
-
     return response;
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 });
