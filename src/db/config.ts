@@ -1,5 +1,8 @@
 import { log } from "console";
 import mongoose from "mongoose";
+import dotenv from "dotenv";
+
+dotenv.config();
 
 export default async function connectDB() {
   const mongoURI = process.env.MONGO_URI;
@@ -20,7 +23,13 @@ export default async function connectDB() {
   });
 
   try {
-    await mongoose.connect(mongoURI, { autoIndex: true });
+    await mongoose
+      .connect(mongoURI)
+      .then(() => console.log("✅ Connected to MongoDB Atlas"))
+      .catch((err) => {
+        console.error("❌ MongoDB connection error:", err.message);
+        process.exit(1);
+      });
   } catch (error) {
     console.log("Failed to connect to MongoDB", error);
     process.exit(1);
