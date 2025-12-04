@@ -1,11 +1,23 @@
+// src/helpers/mailer.ts
 import nodemailer from "nodemailer";
+import { MailtrapTransport } from "mailtrap";
 import User from "@/models/userModel";
 import bcrypt from "bcryptjs";
 import crypto from "crypto";
 
-export const sendEmail = async ({ email, emailType, userId }: any) => {
+const isTesting = process.env.MAILTRAP_MODE === "testing";
+const testRecipient = process.env.MAILTRAP_TEST_RECIPIENT;
+
+export const sendEmail = async ({
+  email,
+  emailType,
+  userId,
+}: {
+  email: string;
+  emailType: "VERIFY" | "RESET";
+  userId: string;
+}) => {
   try {
-    // create a hashed token
     const token = crypto.randomBytes(32).toString("hex");
     const hashedToken = await bcrypt.hash(token, 10);
 
@@ -14,42 +26,36 @@ export const sendEmail = async ({ email, emailType, userId }: any) => {
         verifyToken: hashedToken,
         verifyTokenExpiry: Date.now() + 3600000,
       });
-    } else if (emailType === "RESET") {
+    } else {
       await User.findByIdAndUpdate(userId, {
         forgotPasswordToken: hashedToken,
         forgotPasswordTokenExpiry: Date.now() + 3600000,
       });
     }
 
-    // Use standard SMTP configuration (works for Mailtrap Sandbox)
-    var transport = nodemailer.createTransport({
-      host: "sandbox.smtp.mailtrap.io",
-      port: 2525,
-      auth: {
-        user: process.env.MAILTRAP_USER, // Ensure these are in your .env
-        pass: process.env.MAILTRAP_PASS,
-      },
-    });
+    const transporter = nodemailer.createTransport(
+      MailtrapTransport({ token: process.env.MAILTRAP_TOKEN! })
+    );
 
-    const link = `${process.env.DOMAIN}/${
-      emailType === "VERIFY" ? "verify-email" : "reset-password"
-    }?token=${token}&id=${userId}`; // <--- ADDED &id=${userId}
+    const recipientAddress = isTesting && testRecipient ? testRecipient : email;
 
-    const mailOptions = {
-      from: "hitesh@gmail.com",
-      to: email,
+    await transporter.sendMail({
+      from: { address: "hello@demomailtrap.co", name: "Auth App" },
+      to: { address: recipientAddress, name: "User" },
       subject:
         emailType === "VERIFY" ? "Verify your email" : "Reset your password",
-      html: `<p>Click <a href="${link}">here</a> to ${
+      html: `
+        <p>Click <a href="${process.env.DOMAIN}/${
+        emailType === "VERIFY" ? "verify-email" : "reset-password"
+      }?token=${token}&id=${userId}">here</a> to ${
         emailType === "VERIFY" ? "verify your email" : "reset your password"
-      }
-            or copy and paste the link below in your browser. <br> ${link}
-            </p>`,
-    };
+      }.</p>
+      `,
+    });
 
-    const mailresponse = await transport.sendMail(mailOptions);
-    return mailresponse;
-  } catch (error: any) {
-    throw new Error(error.message);
+    return { success: true, token }; // returning token can help local testing
+  } catch (err: any) {
+    console.error("Email error:", err);
+    throw new Error(err.message);
   }
 };

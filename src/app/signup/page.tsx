@@ -23,7 +23,6 @@ export default function SignupPage() {
       console.log("Signup success", response.data);
       toast.success("Signup successful. Please verify your email.");
 
-      // CHANGE: Redirect to the verification info page
       router.push("/verify-request");
     } catch (error: any) {
       const errorMessage =

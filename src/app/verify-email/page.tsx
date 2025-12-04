@@ -8,14 +8,14 @@ import Link from "next/link";
 export default function VerifyEmail() {
   const router = useRouter();
   const [token, setToken] = useState("");
-  const [userId, setUserId] = useState(""); // Add state for userId
+  const [userId, setUserId] = useState("");
   const [verified, setVerified] = useState(false);
   const [error, setError] = useState(false);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const urlToken = params.get("token");
-    const urlId = params.get("id"); // Get ID from URL
+    const urlId = params.get("id");
 
     if (urlToken) setToken(urlToken);
     if (urlId) setUserId(urlId);
@@ -29,8 +29,8 @@ export default function VerifyEmail() {
 
   const verifyUserEmail = async () => {
     try {
-      // Send both token and userId
-      await axios.post("/api/users/verifyEmail", { token, userId });
+      setError(false);
+      await axios.post("/api/users/verify-email", { token, userId });
       setVerified(true);
       toast.success("Email verified successfully");
       router.push("/login");
