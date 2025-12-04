@@ -3,6 +3,10 @@ import nodemailer from "nodemailer";
 import { MailtrapTransport } from "mailtrap";
 import User from "@/models/userModel";
 import bcrypt from "bcryptjs";
+import crypto from "crypto";
+
+const isTesting = process.env.MAILTRAP_MODE === "testing";
+const testRecipient = process.env.MAILTRAP_TEST_RECIPIENT;
 
 export const sendEmail = async ({
   email,
@@ -14,15 +18,15 @@ export const sendEmail = async ({
   userId: string;
 }) => {
   try {
-    const hashedToken = await bcrypt.hash(userId.toString(), 10);
+    const token = crypto.randomBytes(32).toString("hex");
+    const hashedToken = await bcrypt.hash(token, 10);
 
-    // Update user token
     if (emailType === "VERIFY") {
       await User.findByIdAndUpdate(userId, {
         verifyToken: hashedToken,
-        verifyTokenExpiry: Date.now() + 3600000, // 1 hour
+        verifyTokenExpiry: Date.now() + 3600000,
       });
-    } else if (emailType === "RESET") {
+    } else {
       await User.findByIdAndUpdate(userId, {
         forgotPasswordToken: hashedToken,
         forgotPasswordTokenExpiry: Date.now() + 3600000,
@@ -30,40 +34,29 @@ export const sendEmail = async ({
     }
 
     const transporter = nodemailer.createTransport(
-      MailtrapTransport({
-        token: process.env.MAILTRAP_TOKEN!, // From .env
-      })
+      MailtrapTransport({ token: process.env.MAILTRAP_TOKEN! })
     );
 
-    const sender = {
-      address: "hello@demomailtrap.co",
-      name: "Auth App",
-    };
-
-    const recipients = {
-      address: "testing@your-mailtrap-inbox.com",
-      name: "User",
-    };
+    // If in testing mode, force recipient to the account/test address
+    const recipientAddress = isTesting && testRecipient ? testRecipient : email;
 
     await transporter.sendMail({
-      from: sender,
-      to: recipients,
+      from: { address: "hello@demomailtrap.co", name: "Auth App" },
+      to: { address: recipientAddress, name: "User" },
       subject:
         emailType === "VERIFY" ? "Verify your email" : "Reset your password",
       html: `
         <p>Click <a href="${process.env.DOMAIN}/${
         emailType === "VERIFY" ? "verify-email" : "reset-password"
-      }?token=${hashedToken}">here</a> to 
-        ${
-          emailType === "VERIFY" ? "verify your email" : "reset your password"
-        }.</p>
+      }?token=${token}">here</a> to ${
+        emailType === "VERIFY" ? "verify your email" : "reset your password"
+      }.</p>
       `,
     });
 
-    console.log("Email sent successfully");
-    return { success: true };
-  } catch (error: any) {
-    console.error("Email error:", error);
-    throw new Error(error.message);
+    return { success: true, token }; // returning token can help local testing
+  } catch (err: any) {
+    console.error("Email error:", err);
+    throw new Error(err.message);
   }
 };
