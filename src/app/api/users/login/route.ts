@@ -16,6 +16,12 @@ export async function POST(request: NextRequest) {
         { status: 401 }
       );
     }
+    if (!user.isVerified) {
+      return NextResponse.json(
+        { error: "Please verify your email before logging in" },
+        { status: 400 }
+      );
+    }
 
     const validPassword = await bcrypt.compare(password, user.password);
     if (!validPassword) {

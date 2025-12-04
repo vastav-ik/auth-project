@@ -37,7 +37,6 @@ export const sendEmail = async ({
       MailtrapTransport({ token: process.env.MAILTRAP_TOKEN! })
     );
 
-    // If in testing mode, force recipient to the account/test address
     const recipientAddress = isTesting && testRecipient ? testRecipient : email;
 
     await transporter.sendMail({
@@ -48,7 +47,7 @@ export const sendEmail = async ({
       html: `
         <p>Click <a href="${process.env.DOMAIN}/${
         emailType === "VERIFY" ? "verify-email" : "reset-password"
-      }?token=${token}">here</a> to ${
+      }?token=${token}&id=${userId}">here</a> to ${
         emailType === "VERIFY" ? "verify your email" : "reset your password"
       }.</p>
       `,
